@@ -1,0 +1,125 @@
+﻿
+@{
+    ViewData["Title"] = "Monitoring";
+}
+
+<h2>Monitoring</h2>
+
+@{
+    ViewData["Title"] = "Home Page";
+}
+<link href="~/css/monitoring.css" rel="stylesheet" />
+<!-- component template -->
+<script type="text/x-template" id="grid-template">
+    <table>
+        <thead>
+            <tr>
+                <th v-for="key in columns"
+                    @@click="sortBy(key)"
+                    :class="{ active: sortKey == key }">
+                    {{ key | capitalize }}
+                    <span class="arrow" :class="sortOrders[key] > 0 ? 'asc' : 'dsc'">
+                    </span>
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr v-for="entry in filteredHeroes">
+                <td v-for="key in columns">
+                    {{entry[key]}}
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</script>
+<div id="demo">
+    <demo-grid :heroes="gridData"
+               :columns="gridColumns"
+               :filter-key="searchQuery">
+    </demo-grid>
+</div>
+@section Scripts {
+    <script>
+        const APIEndpoint = 'https://localhost:5001';
+        Vue.component('demo-grid', {
+            template: '#grid-template',
+            props: {
+              heroes: Array,
+              columns: Array,
+              filterKey: String
+            },
+            data: function () {
+              var sortOrders = {}
+              this.columns.forEach(function (key) {
+                sortOrders[key] = 1
+              })
+              return {
+                sortKey: '',
+                sortOrders: sortOrders
+              }
+            },
+            computed: {
+              filteredHeroes: function () {
+                var sortKey = this.sortKey
+                var filterKey = this.filterKey && this.filterKey.toLowerCase()
+                var order = this.sortOrders[sortKey] || 1
+                var heroes = this.heroes
+                if (filterKey) {
+                  heroes = heroes.filter(function (row) {
+                    return Object.keys(row).some(function (key) {
+                      return String(row[key]).toLowerCase().indexOf(filterKey) > -1
+                    })
+                  })
+                }
+                if (sortKey) {
+                  heroes = heroes.slice().sort(function (a, b) {
+                    a = a[sortKey]
+                    b = b[sortKey]
+                    return (a === b ? 0 : a > b ? 1 : -1) * order
+                  })
+                }
+                return heroes
+              }
+            },
+            filters: {
+              capitalize: function (str) {
+                return str.charAt(0).toUpperCase() + str.slice(1)
+              }
+            },
+            methods: {
+              sortBy: function (key) {
+                this.sortKey = key
+                this.sortOrders[key] = this.sortOrders[key] * -1
+              }
+            }
+        })
+
+        var demo = new Vue({
+          el: '#demo',
+          data: {
+            searchQuery: '',
+            gridColumns: ['id', 'name', 'state'],
+            gridData: []
+              
+            },
+          mounted() {
+                 this.loadData();
+                  setInterval(function () {
+                        this.loadData();
+                   }.bind(this), 3000); 
+            },
+            methods: {
+                loadData: function () {
+                    axios.get(APIEndpoint+'@Url.Action("GetApps","Home")', { withCredentials: true })
+                      .then(response => {
+                          this.gridData = { ...response.data };
+                               console.log(response);
+                        });
+                }
+            }
+
+        })
+
+    </script>
+
+}
